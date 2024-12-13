@@ -10,7 +10,7 @@ const axios = require('axios');
 const jobsProxyConfig = appConfig.getJobsProxyConfig();
 const oauthclient = require('../proxy/oauth-client');
 const backboneclient = require('../proxy/backbone-client');
-const logger = appConfig.getLogger();
+const logger = appConfig.getLoggerApp();
 const {v4: uuidv4} = require('uuid');
 const CryptoJS = require("crypto-js");
 
@@ -33,14 +33,17 @@ const BACKBONE_OAUTH_TOKEN_URL = process.env.BACKBONE_AUTH_SERVER_URI;
 const BACKBONE_OAUTH_USER_ALIAS = process.env.BACKBONE_AUTH_USER_ALIAS;
 const BACKBONE_OAUTH_USER_PASSWORD = process.env.BACKBONE_AUTH_USER_PASSWORD;
 
+const schemesList = ["http:", "https:"];
+const domainsList = ["prx-qa.backbone.tst", "prx-qa.manager.tst"];
+
 const HttpsAgent = require('agentkeepalive').HttpsAgent;
 const cKey = CryptoJS.enc.Utf8.parse(process.env.ENCRYPT_KEY);
 const iv = CryptoJS.enc.Utf8.parse(process.env.ENCRYPT_IV);
 
 const Agent = require('agentkeepalive');
 const {
-    AUTHORIZATION, BEARER, SESSION_TOKEN_BKD, FID_LOGGER_TRACKING_ID, CONTENT_TYPE, FID_USER_ID,
-    CONTENT_TYPE_DEFAULT, ACCEPT
+  AUTHORIZATION, BEARER, SESSION_TOKEN_BKD, FID_LOGGER_TRACKING_ID, CONTENT_TYPE, FID_USER_ID,
+  CONTENT_TYPE_DEFAULT, ACCEPT,API_INVALID_URL_REQUEST_TITLE
 } = require("../config/constants.util");
 
 /**
@@ -48,13 +51,13 @@ const {
  * @type {{password: string, clientId: string, tokenUrl: string, clientSecret: string, authenticationType: string, grantType: string, username: string}}
  */
 const jobsOauthClientConfig = {
-    clientId: OAUTH_CLIENT_ID,
-    clientSecret: OAUTH_CLIENT_SECRET,
-    grantType: OAUTH_GRANT_TYPE,
-    tokenUrl: OAUTH_TOKEN_URL,
-    authenticationType: OAUTH_AUTHENTICATION_TYPE,
-    username: OAUTH_USER_ALIAS,
-    password: OAUTH_USER_PASSWORD
+  clientId: OAUTH_CLIENT_ID,
+  clientSecret: OAUTH_CLIENT_SECRET,
+  grantType: OAUTH_GRANT_TYPE,
+  tokenUrl: OAUTH_TOKEN_URL,
+  authenticationType: OAUTH_AUTHENTICATION_TYPE,
+  username: OAUTH_USER_ALIAS,
+  password: OAUTH_USER_PASSWORD
 };
 
 /**
@@ -62,13 +65,13 @@ const jobsOauthClientConfig = {
  * @type {{password: string, clientId: string, tokenUrl: string, clientSecret: string, authenticationType: string, grantType: string, username: string}}
  */
 const backboneOauthClientConfig = {
-    clientId: BACKBONE_OAUTH_CLIENT_ID,
-    clientSecret: BACKBONE_OAUTH_CLIENT_SECRET,
-    grantType: BACKBONE_OAUTH_GRANT_TYPE,
-    tokenUrl: BACKBONE_OAUTH_TOKEN_URL,
-    authenticationType: BACKBONE_OAUTH_AUTHENTICATION_TYPE,
-    username: BACKBONE_OAUTH_USER_ALIAS,
-    password: BACKBONE_OAUTH_USER_PASSWORD
+  clientId: BACKBONE_OAUTH_CLIENT_ID,
+  clientSecret: BACKBONE_OAUTH_CLIENT_SECRET,
+  grantType: BACKBONE_OAUTH_GRANT_TYPE,
+  tokenUrl: BACKBONE_OAUTH_TOKEN_URL,
+  authenticationType: BACKBONE_OAUTH_AUTHENTICATION_TYPE,
+  username: BACKBONE_OAUTH_USER_ALIAS,
+  password: BACKBONE_OAUTH_USER_PASSWORD
 };
 
 /**
@@ -76,11 +79,11 @@ const backboneOauthClientConfig = {
  * @type {{maxFreeSockets: number, keepAlive: boolean, maxSockets: number, freeSocketTimeout: number, timeout: number}}
  */
 const httpConnectionOptions = {
-    keepAlive: true,
-    maxSockets: 100,
-    maxFreeSockets: 10,
-    timeout: 60000,
-    freeSocketTimeout: 30000
+  keepAlive: true,
+  maxSockets: 100,
+  maxFreeSockets: 10,
+  timeout: 60000,
+  freeSocketTimeout: 30000
 };
 
 /**
@@ -103,29 +106,29 @@ const keepaliveHttpsAgent = new HttpsAgent(httpConnectionOptions);
  * @throws {Error} - Throws an error if the API endpoint is not found.
  */
 let getApiEndpoint = function (path) {
-    let finalPath = null;
-    let applicationName = null;
-    for (const element of jobsProxyConfig) {
-        if (element.matchOn != null && element.matchOn.startWith != null && path.startsWith(element.matchOn.startWith)) {
-            if (element.urlRewrite != null) {
-                finalPath = path.replace(element.urlRewrite.from, element.urlRewrite.to);
-            } else {
-                finalPath = path;
-            }
-            applicationName = element.applicationName;
-            break;
-        }
+  let finalPath = null;
+  let applicationName = null;
+  for (const element of jobsProxyConfig) {
+    if (element.matchOn != null && element.matchOn.startWith != null && path.startsWith(element.matchOn.startWith)) {
+      if (element.urlRewrite != null) {
+        finalPath = path.replace(element.urlRewrite.from, element.urlRewrite.to);
+      } else {
+        finalPath = path;
+      }
+      applicationName = element.applicationName;
+      break;
     }
-    let apiURL = API_SERVICE_DIRECTORY_MAP[applicationName];
+  }
+  let apiURL = API_SERVICE_DIRECTORY_MAP[applicationName];
 
-    if (apiURL != null) {
-        return apiURL + finalPath;
-    } else {
-        throw errorUtil.createErrorResponse(constants.NOT_FOUND_REQUEST_CODE,
-            constants.NOT_FOUND_REQUEST_TITLE,
-            constants.NOT_FOUND_REQUEST_DETAIL,
-            constants.NOT_FOUND_REQUEST_CODE_VALUE);
-    }
+  if (apiURL != null) {
+    return apiURL + finalPath;
+  } else {
+    throw errorUtil.createErrorResponse(constants.NOT_FOUND_REQUEST_CODE,
+      constants.NOT_FOUND_REQUEST_TITLE,
+      constants.NOT_FOUND_REQUEST_DETAIL,
+      constants.NOT_FOUND_REQUEST_CODE_VALUE);
+  }
 };
 
 /**
@@ -133,14 +136,14 @@ let getApiEndpoint = function (path) {
  * @returns {Object} - The backbone client instance.
  */
 let getBackboneClient = function () {
-    let backboneApiURL = BACKBONE_API_SERVICE_MAP['backbone'] + '/backbone/v1/session';
-    if (backboneClient) {
-        return backboneClient;
-    }
-    backboneClient = backboneclient.getBackbone({
-        url: backboneApiURL
-    });
+  let backboneApiURL = BACKBONE_API_SERVICE_MAP['backbone'] + '/backbone/v1/session';
+  if (backboneClient) {
     return backboneClient;
+  }
+  backboneClient = backboneclient.getBackbone({
+    url: backboneApiURL
+  });
+  return backboneClient;
 };
 
 /**
@@ -149,9 +152,9 @@ let getBackboneClient = function () {
  * @returns {Object} - The OAuth client instance.
  */
 let getOauthClient = function (oauthClientConfig) {
-    let oauthClient;
-    oauthClient = oauthclient.getOAuthClient(oauthClientConfig);
-    return oauthClient;
+  let oauthClient;
+  oauthClient = oauthclient.getOAuthClient(oauthClientConfig);
+  return oauthClient;
 };
 
 /**
@@ -161,13 +164,13 @@ let getOauthClient = function (oauthClientConfig) {
  * @returns {Promise<*>} - The session token.
  */
 const backboneSessionToken = async (req) => {
-    let backboneSession = null;
-    if (req.url === API_SERVICE_DIRECTORY_SESSION_RELATIVE_PATH) {
-        const backboneToken = await getOauthClient(backboneOauthClientConfig).getBearerToken();
-        backboneSession = await getBackboneClient().getToken(req.body.alias,
-            CryptoJS.AES.encrypt(req.body.password, cKey, {iv: iv}).toString(), backboneToken);
-    }
-    return backboneSession?.token;
+  let backboneSession = null;
+  if (req.url === API_SERVICE_DIRECTORY_SESSION_RELATIVE_PATH) {
+    const backboneToken = await getOauthClient(backboneOauthClientConfig).getBearerToken();
+    backboneSession = await getBackboneClient().getToken(req.body.alias,
+      CryptoJS.AES.encrypt(req.body.password, cKey, {iv: iv}).toString(), backboneToken);
+  }
+  return backboneSession?.token;
 };
 
 /**
@@ -178,35 +181,40 @@ const backboneSessionToken = async (req) => {
  * @param {Function} next - The next middleware function.
  */
 const proxyApi = async (req, res, next) => {
-    let response = null;
+  let response = null;
+  if (schemesList.includes(new URL(apiURL).protocol) && domainsList.includes(new URL(apiURL).hostname)) {
     try {
-        const apiURL = getApiEndpoint(req.url);
-        let jobsToken = await getOauthClient(jobsOauthClientConfig).getBearerToken();
-        let backboneSession = await backboneSessionToken(req);
-        let headers = getRequestHeader(req, jobsToken, backboneSession, constants.CONTENT_TYPE_DEFAULT, constants.CONTENT_TYPE_DEFAULT);
-        // Trace
-        logger.info(`[DIS] Proxying request to ${apiURL}`);
-        let httpOptions = createRequestOption(req.method, apiURL, req.body, headers);
-        let axiosResponse = await axios(httpOptions);
+      const apiURL = getApiEndpoint(req.url);
+      let jobsToken = await getOauthClient(jobsOauthClientConfig).getBearerToken();
+      let backboneSession = await backboneSessionToken(req);
+      let headers = getRequestHeader(req, jobsToken, backboneSession, constants.CONTENT_TYPE_DEFAULT, constants.CONTENT_TYPE_DEFAULT);
+      // Trace
+      logger.info(`[DIS] Proxying request to ${apiURL}`);
+      let httpOptions = createRequestOption(req.method, apiURL, req.body, headers);
 
-        delete axiosResponse.headers['transfer-encoding'];
-        response = axiosResponse.data;
-        res.set(axiosResponse.headers);
+      let axiosResponse = await axios(httpOptions);
 
-        // Include the session-token-bkd in the response headers
-        if (backboneSession && req.url === API_SERVICE_DIRECTORY_SESSION_RELATIVE_PATH) {
-            res.set(SESSION_TOKEN_BKD, backboneSession);
-        }
+      delete axiosResponse.headers['transfer-encoding'];
+      response = axiosResponse.data;
+      res.set(axiosResponse.headers);
+
+      // Include the session-token-bkd in the response headers
+      if (backboneSession && req.url === API_SERVICE_DIRECTORY_SESSION_RELATIVE_PATH) {
+        res.set(SESSION_TOKEN_BKD, backboneSession);
+      }
     } catch (error) {
-        if (error.response != null) {
-            response = error.response.data;
-            res.status(error.response.status);
-        } else if (error.errors != null) {
-            response = error;
-            res.status(500);
-        }
+      if (error.response != null) {
+        response = error.response.data;
+        res.status(error.response.status);
+      } else if (error.errors != null) {
+        response = error;
+        res.status(500);
+      }
     }
     res.send(response);
+  } else {
+    res.send(constants.API_INVALID_URL_REQUEST_TITLE);
+  }
 };
 
 /**
@@ -220,9 +228,9 @@ const proxyApi = async (req, res, next) => {
  * @returns {Object} - The constructed headers.
  */
 const getRequestHeader = function (req, jobsToken, backboneSession, defaultAccept, defaultContentType) {
-    let headers = getBasicHeader(req, jobsToken, backboneSession, defaultAccept);
-    headers[CONTENT_TYPE] = req.header(CONTENT_TYPE) == null ? defaultContentType : req.header(CONTENT_TYPE);
-    return headers;
+  let headers = getBasicHeader(req, jobsToken, backboneSession, defaultAccept);
+  headers[CONTENT_TYPE] = req.header(CONTENT_TYPE) == null ? defaultContentType : req.header(CONTENT_TYPE);
+  return headers;
 };
 
 /**
@@ -234,21 +242,21 @@ const getRequestHeader = function (req, jobsToken, backboneSession, defaultAccep
  * @returns {{}} - The constructed headers.
  */
 const getBasicHeader = function (req, jobsToken, backboneSession, defaultAccept) {
-    let headers = {};
-    headers[FID_LOGGER_TRACKING_ID] = req.header(FID_LOGGER_TRACKING_ID) == null ? uuidv4() : req.header(FID_LOGGER_TRACKING_ID);
-    headers[FID_USER_ID] = req.header(FID_USER_ID) == null ? "anonymous" : req.header(FID_USER_ID);
-    headers[AUTHORIZATION] = BEARER + jobsToken;
-    headers[ACCEPT] = req.header(ACCEPT) == null ? defaultAccept : req.header(ACCEPT);
+  let headers = {};
+  headers[FID_LOGGER_TRACKING_ID] = req.header(FID_LOGGER_TRACKING_ID) == null ? uuidv4() : req.header(FID_LOGGER_TRACKING_ID);
+  headers[FID_USER_ID] = req.header(FID_USER_ID) == null ? "anonymous" : req.header(FID_USER_ID);
+  headers[AUTHORIZATION] = BEARER + jobsToken;
+  headers[ACCEPT] = req.header(ACCEPT) == null ? defaultAccept : req.header(ACCEPT);
 
-    if (req.header(SESSION_TOKEN_BKD) !== null) {
-        headers[SESSION_TOKEN_BKD] = req.header(SESSION_TOKEN_BKD);
-    }
+  if (req.header(SESSION_TOKEN_BKD) !== null) {
+    headers[SESSION_TOKEN_BKD] = req.header(SESSION_TOKEN_BKD);
+  }
 
-    if (backboneSession) {
-        headers[SESSION_TOKEN_BKD] = backboneSession;
-    }
+  if (backboneSession) {
+    headers[SESSION_TOKEN_BKD] = backboneSession;
+  }
 
-    return headers;
+  return headers;
 };
 
 /**
@@ -261,17 +269,17 @@ const getBasicHeader = function (req, jobsToken, backboneSession, defaultAccept)
  * @returns {Object} - The constructed request options.
  */
 let createRequestOption = function (method, url, body, headers) {
-    return {
-        method: method.toLowerCase(),
-        url: url,
-        data: body != null ? body : null,
-        headers: headers,
-        httpAgent: keepaliveAgent,
-        httpsAgent: keepaliveHttpsAgent,
-        responseType: headers[ACCEPT] === CONTENT_TYPE_DEFAULT ? 'blob' : 'json'
-    }
+  return {
+    method: method.toLowerCase(),
+    url: url,
+    data: body != null ? body : null,
+    headers: headers,
+    httpAgent: keepaliveAgent,
+    httpsAgent: keepaliveHttpsAgent,
+    responseType: headers[ACCEPT] === CONTENT_TYPE_DEFAULT ? 'blob' : 'json'
+  }
 };
 
 module.exports = {
-    proxyApi
+  proxyApi
 };

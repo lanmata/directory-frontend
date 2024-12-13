@@ -20,7 +20,7 @@ const options = {
 
 app.use(httpContext.middleware);
 
-let logger = appConfig.getLogger();
+let logger = appConfig.getLoggerApp();
 // Parsers for POST data
 app.use(compression());
 app.use(bodyParser.json({limit: '50mb'}));
