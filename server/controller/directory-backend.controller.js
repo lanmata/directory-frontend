@@ -232,7 +232,12 @@ const proxyApi = async (req, res, next) => {
  */
 const getRequestHeader = function (req, jobsToken, backboneSession, defaultAccept, defaultContentType) {
   let headers = getBasicHeader(req, jobsToken, backboneSession, defaultAccept);
-  headers[CONTENT_TYPE] = req.header(CONTENT_TYPE) == null ? defaultContentType : req.header(CONTENT_TYPE);
+  const contentType = req.header(CONTENT_TYPE);
+  if (contentType !== null && contentType === CONTENT_TYPE_DEFAULT) {
+    headers[CONTENT_TYPE] = CONTENT_TYPE_DEFAULT;
+  } else {
+    headers[CONTENT_TYPE] = defaultContentType;
+  }
   return headers;
 };
 
