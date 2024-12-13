@@ -211,6 +211,8 @@ const proxyApi = async (req, res, next) => {
       }
     }
     if (!ajv.validate('schema', req.body)) {
+      res.send({error: ajv.errorsText()});
+    } else {
       res.send(response);
     }
   } else {
