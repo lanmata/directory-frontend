@@ -1,0 +1,26 @@
+{
+  "directoryBackendProxyConfig": [
+    {
+      "applicationName": "directory-backend",
+      "matchOn": {
+        "startWith": "/api/v1"
+      },
+      "urlRewrite": {
+        "from": "/api/v1",
+        "to": "/directory/api/v1"
+      }
+    }
+  ],
+  "backboneProxyConfig": [
+    {
+      "applicationName": "backbone",
+      "matchOn": {
+        "startWith": "/backbone/api"
+      },
+      "urlRewrite": {
+        "from": "/backbone/api",
+        "to": "/backbone/v1"
+      }
+    }
+  ]
+}

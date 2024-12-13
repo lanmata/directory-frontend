@@ -32,9 +32,9 @@
             "scripts": [],
             "server": "src/main.server.ts",
             "prerender": true,
-            "ssr": {
-              "entry": "src/server.ts"
-            }
+//            "ssr": {
+//              "entry": "src/server.ts"
+//            }
           },
           "configurations": {
             "production": {
@@ -97,5 +97,8 @@
         }
       }
     }
+  },
+  "cli": {
+    "analytics": "2b2d4815-826a-40fa-819c-09e575a75e06"
   }
 }
