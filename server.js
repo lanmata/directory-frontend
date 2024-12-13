@@ -11,17 +11,24 @@ const compression = require('compression');
 const app = express();
 const cors = require('cors');
 const fs = require('fs');
+const RateLimit = require('express-rate-limit');
 
 const options = {
   key: fs.readFileSync('./ssl/manager-front.key'),
   cert: fs.readFileSync('./ssl/manager-front.crt')
 }
 
+// set up rate limiter: maximum of 100 requests per 15 minutes
+const limiter = RateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // max 100 requests per windowMs
+});
 
 app.use(httpContext.middleware);
 
 let logger = appConfig.getLoggerApp();
 // Parsers for POST data
+app.use(limiter);
 app.use(compression());
 app.use(bodyParser.json({limit: '50mb'}));
 app.use(cors());
