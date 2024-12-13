@@ -13,7 +13,7 @@ const backboneclient = require('../proxy/backbone-client');
 const logger = appConfig.getLoggerApp();
 const {v4: uuidv4} = require('uuid');
 const bcrypt = require("bcrypt");
-const Ajv =require('ajv');
+const Ajv = require('ajv');
 
 const API_SERVICE_DIRECTORY_SESSION_RELATIVE_PATH = process.env.API_SERVICE_DIRECTORY_SESSION_RELATIVE_PATH;
 const API_SERVICE_DIRECTORY_MAP = JSON.parse(process.env.API_SERVICE_DIRECTORY_MAP);
@@ -43,7 +43,7 @@ ajv.addSchema({type: 'string', format: 'uuid'}, 'schema');
 const Agent = require('agentkeepalive');
 const {
   AUTHORIZATION, BEARER, SESSION_TOKEN_BKD, FID_LOGGER_TRACKING_ID, CONTENT_TYPE, FID_USER_ID,
-  CONTENT_TYPE_DEFAULT, ACCEPT,API_INVALID_URL_REQUEST_TITLE
+  CONTENT_TYPE_DEFAULT, ACCEPT, API_INVALID_URL_REQUEST_TITLE
 } = require("../config/constants.util");
 
 /**
@@ -167,7 +167,7 @@ const backboneSessionToken = async (req) => {
   let backboneSession = null;
   if (req.url === API_SERVICE_DIRECTORY_SESSION_RELATIVE_PATH) {
     const backboneToken = await getOauthClient(backboneOauthClientConfig).getBearerToken();
-    backboneSession = await getBackboneClient().getToken(req.body.alias, bcrypt.hashSync(req.body.password, 10));
+    backboneSession = await getBackboneClient().getToken(req.body.alias, bcrypt.hashSync(req.body.password, 10), backboneToken);
   }
   return backboneSession?.token;
 };
@@ -210,11 +210,11 @@ const proxyApi = async (req, res, next) => {
         res.status(500);
       }
     }
-    if(!ajv.validate('schema', req.body)) {
+    if (!ajv.validate('schema', req.body)) {
       res.send(response);
     }
   } else {
-    res.send(constants.API_INVALID_URL_REQUEST_TITLE);
+    res.send(API_INVALID_URL_REQUEST_TITLE);
   }
 };
 
@@ -244,12 +244,11 @@ const getRequestHeader = function (req, jobsToken, backboneSession, defaultAccep
  */
 const getBasicHeader = function (req, jobsToken, backboneSession, defaultAccept) {
   let headers = {};
-  if(req.header(FID_LOGGER_TRACKING_ID) !== null && isValidUUID(req.header(FID_LOGGER_TRACKING_ID))) {
-
-  headers[FID_LOGGER_TRACKING_ID] = req.header(FID_LOGGER_TRACKING_ID);
+  const fidLoggerTrackingId = req.header(FID_LOGGER_TRACKING_ID);
+  if (fidLoggerTrackingId !== null && isValidUUID(fidLoggerTrackingId)) {
+    headers[FID_LOGGER_TRACKING_ID] = fidLoggerTrackingId;
   } else {
     headers[FID_LOGGER_TRACKING_ID] = uuidv4();
-
   }
   headers[FID_USER_ID] = req.header(FID_USER_ID) == null ? "anonymous" : req.header(FID_USER_ID);
   headers[AUTHORIZATION] = BEARER + jobsToken;
