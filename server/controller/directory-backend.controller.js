@@ -249,6 +249,7 @@ const getBasicHeader = function (req, jobsToken, backboneSession, defaultAccept)
   const fidLoggerTrackingId = req.header(FID_LOGGER_TRACKING_ID);
   const userId = req.header(FID_USER_ID);
   const sessionTokenBkd = req.header(SESSION_TOKEN_BKD);
+  const accept = req.header(ACCEPT);
   if (fidLoggerTrackingId !== null && isValidUUID(fidLoggerTrackingId)) {
     headers[FID_LOGGER_TRACKING_ID] = fidLoggerTrackingId;
   } else {
@@ -260,7 +261,12 @@ const getBasicHeader = function (req, jobsToken, backboneSession, defaultAccept)
     headers[FID_USER_ID] = "anonymous";
   }
   headers[AUTHORIZATION] = BEARER + jobsToken;
-  headers[ACCEPT] = req.header(ACCEPT) == null ? defaultAccept : req.header(ACCEPT);
+
+  if (accept && accept === ACCEPT) {
+    headers[ACCEPT] = accept;
+  } else {
+    headers[ACCEPT] = defaultAccept
+  }
 
   if (sessionTokenBkd !== null && isValidBearerToken(sessionTokenBkd)) {
     headers[SESSION_TOKEN_BKD] = sessionTokenBkd;

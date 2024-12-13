@@ -24,6 +24,7 @@ const limiter = RateLimit({
   max: 100, // max 100 requests per windowMs
 });
 
+app.use(limiter);
 app.use(httpContext.middleware);
 
 let logger = appConfig.getLoggerApp();
@@ -31,7 +32,6 @@ let logger = appConfig.getLoggerApp();
 app.use(compression());
 app.use(bodyParser.json({limit: '50mb'}));
 app.use(cors());
-app.use(limiter);
 
 // Get port from environment and store in Express.
 const port = '7001';
