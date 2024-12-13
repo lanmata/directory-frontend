@@ -260,7 +260,7 @@ const getBasicHeader = function (req, jobsToken, backboneSession, defaultAccept)
   headers[AUTHORIZATION] = BEARER + jobsToken;
   headers[ACCEPT] = req.header(ACCEPT) == null ? defaultAccept : req.header(ACCEPT);
 
-  if (sessionTokenBkd !== null && ValidBearerToken(sessionTokenBkd)) {
+  if (sessionTokenBkd !== null && isValidBearerToken(sessionTokenBkd)) {
     headers[SESSION_TOKEN_BKD] = sessionTokenBkd;
   }
 
