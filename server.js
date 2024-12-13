@@ -28,10 +28,10 @@ app.use(httpContext.middleware);
 
 let logger = appConfig.getLoggerApp();
 // Parsers for POST data
-app.use(limiter);
 app.use(compression());
 app.use(bodyParser.json({limit: '50mb'}));
 app.use(cors());
+app.use(limiter);
 
 // Get port from environment and store in Express.
 const port = '7001';
