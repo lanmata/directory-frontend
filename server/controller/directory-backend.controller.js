@@ -13,6 +13,7 @@ const backboneclient = require('../proxy/backbone-client');
 const logger = appConfig.getLoggerApp();
 const {v4: uuidv4} = require('uuid');
 const bcrypt = require("bcrypt");
+const Ajv =require('ajv');
 
 const API_SERVICE_DIRECTORY_SESSION_RELATIVE_PATH = process.env.API_SERVICE_DIRECTORY_SESSION_RELATIVE_PATH;
 const API_SERVICE_DIRECTORY_MAP = JSON.parse(process.env.API_SERVICE_DIRECTORY_MAP);
@@ -37,9 +38,8 @@ const schemesList = ["http:", "https:"];
 const domainsList = ["prx-qa.backbone.tst", "prx-qa.manager.tst"];
 
 const HttpsAgent = require('agentkeepalive').HttpsAgent;
-// const cKey = bcrypt.enc.Utf8.parse(process.env.ENCRYPT_KEY);
-// const iv = bcrypt.enc.Utf8.parse(process.env.ENCRYPT_IV);
-
+const ajv = new Ajv();
+ajv.addSchema({type: 'string', format: 'uuid'}, 'schema');
 const Agent = require('agentkeepalive');
 const {
   AUTHORIZATION, BEARER, SESSION_TOKEN_BKD, FID_LOGGER_TRACKING_ID, CONTENT_TYPE, FID_USER_ID,
@@ -210,7 +210,9 @@ const proxyApi = async (req, res, next) => {
         res.status(500);
       }
     }
-    res.send(response);
+    if(!ajv.validate('schema', req.body)) {
+      res.send(response);
+    }
   } else {
     res.send(constants.API_INVALID_URL_REQUEST_TITLE);
   }
