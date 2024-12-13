@@ -12,7 +12,7 @@ const oauthclient = require('../proxy/oauth-client');
 const backboneclient = require('../proxy/backbone-client');
 const logger = appConfig.getLoggerApp();
 const {v4: uuidv4} = require('uuid');
-const CryptoJS = require("crypto-js");
+const bcrypt = require("bcrypt");
 
 const API_SERVICE_DIRECTORY_SESSION_RELATIVE_PATH = process.env.API_SERVICE_DIRECTORY_SESSION_RELATIVE_PATH;
 const API_SERVICE_DIRECTORY_MAP = JSON.parse(process.env.API_SERVICE_DIRECTORY_MAP);
@@ -37,8 +37,8 @@ const schemesList = ["http:", "https:"];
 const domainsList = ["prx-qa.backbone.tst", "prx-qa.manager.tst"];
 
 const HttpsAgent = require('agentkeepalive').HttpsAgent;
-const cKey = CryptoJS.enc.Utf8.parse(process.env.ENCRYPT_KEY);
-const iv = CryptoJS.enc.Utf8.parse(process.env.ENCRYPT_IV);
+// const cKey = bcrypt.enc.Utf8.parse(process.env.ENCRYPT_KEY);
+// const iv = bcrypt.enc.Utf8.parse(process.env.ENCRYPT_IV);
 
 const Agent = require('agentkeepalive');
 const {
@@ -167,8 +167,7 @@ const backboneSessionToken = async (req) => {
   let backboneSession = null;
   if (req.url === API_SERVICE_DIRECTORY_SESSION_RELATIVE_PATH) {
     const backboneToken = await getOauthClient(backboneOauthClientConfig).getBearerToken();
-    backboneSession = await getBackboneClient().getToken(req.body.alias,
-      CryptoJS.AES.encrypt(req.body.password, cKey, {iv: iv}).toString(), backboneToken);
+    backboneSession = await getBackboneClient().getToken(req.body.alias, bcrypt.hashSync(req.body.password, 10));
   }
   return backboneSession?.token;
 };
@@ -243,7 +242,13 @@ const getRequestHeader = function (req, jobsToken, backboneSession, defaultAccep
  */
 const getBasicHeader = function (req, jobsToken, backboneSession, defaultAccept) {
   let headers = {};
-  headers[FID_LOGGER_TRACKING_ID] = req.header(FID_LOGGER_TRACKING_ID) == null ? uuidv4() : req.header(FID_LOGGER_TRACKING_ID);
+  if(req.header(FID_LOGGER_TRACKING_ID) !== null && isValidUUID(req.header(FID_LOGGER_TRACKING_ID))) {
+
+  headers[FID_LOGGER_TRACKING_ID] = req.header(FID_LOGGER_TRACKING_ID);
+  } else {
+    headers[FID_LOGGER_TRACKING_ID] = uuidv4();
+
+  }
   headers[FID_USER_ID] = req.header(FID_USER_ID) == null ? "anonymous" : req.header(FID_USER_ID);
   headers[AUTHORIZATION] = BEARER + jobsToken;
   headers[ACCEPT] = req.header(ACCEPT) == null ? defaultAccept : req.header(ACCEPT);
@@ -258,6 +263,12 @@ const getBasicHeader = function (req, jobsToken, backboneSession, defaultAccept)
 
   return headers;
 };
+
+const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[4][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isValidUUID(uuid) {
+  return uuidRegex.test(uuid);
+}
 
 /**
  * Creates the request options for the proxied request.
