@@ -245,17 +245,23 @@ const getRequestHeader = function (req, jobsToken, backboneSession, defaultAccep
 const getBasicHeader = function (req, jobsToken, backboneSession, defaultAccept) {
   let headers = {};
   const fidLoggerTrackingId = req.header(FID_LOGGER_TRACKING_ID);
+  const userId = req.header(FID_USER_ID);
+  const sessionTokenBkd = req.header(SESSION_TOKEN_BKD);
   if (fidLoggerTrackingId !== null && isValidUUID(fidLoggerTrackingId)) {
     headers[FID_LOGGER_TRACKING_ID] = fidLoggerTrackingId;
   } else {
     headers[FID_LOGGER_TRACKING_ID] = uuidv4();
   }
-  headers[FID_USER_ID] = req.header(FID_USER_ID) == null ? "anonymous" : req.header(FID_USER_ID);
+  if (userId !== null && isValidUUID(userId)) {
+    headers[FID_USER_ID] = fidLoggerTrackingId;
+  } else {
+    headers[FID_USER_ID] = "anonymous";
+  }
   headers[AUTHORIZATION] = BEARER + jobsToken;
   headers[ACCEPT] = req.header(ACCEPT) == null ? defaultAccept : req.header(ACCEPT);
 
-  if (req.header(SESSION_TOKEN_BKD) !== null) {
-    headers[SESSION_TOKEN_BKD] = req.header(SESSION_TOKEN_BKD);
+  if (sessionTokenBkd !== null && ValidBearerToken(sessionTokenBkd)) {
+    headers[SESSION_TOKEN_BKD] = sessionTokenBkd;
   }
 
   if (backboneSession) {
@@ -269,6 +275,12 @@ const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[4][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-
 
 function isValidUUID(uuid) {
   return uuidRegex.test(uuid);
+}
+
+const bearerTokenRegex = /^Bearer\s[a-zA-Z0-9\-._~+/]+=*$/;
+
+function isValidBearerToken(token) {
+  return bearerTokenRegex.test(token);
 }
 
 /**
